@@ -1,0 +1,9 @@
+{
+  "name": "CYCLOPS Cyclone Resilience Twin",
+  "short_name": "CYCLOPS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EDF1F2",
+  "theme_color": "#C1272D",
+  "icons": [{ "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

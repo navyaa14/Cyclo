@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CYCLOPS — Cyclone Infrastructure Resilience Twin</title>
+<meta name="theme-color" content="#C1272D">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<header class="band" id="band" data-level="RED">
+  <div class="brand">CYCLOPS<small>Predict what the cyclone breaks</small></div>
+  <div class="band-event" id="bandEvent">Loading scenario…<span>&nbsp;</span></div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <span class="offline-badge">Offline field mode</span>
+    <div class="scenario-switch" role="group" aria-label="Scenario">
+      <button data-scenario="conservative" aria-pressed="false">Low</button>
+      <button data-scenario="expected" aria-pressed="true">Expected</button>
+      <button data-scenario="severe" aria-pressed="false">High</button>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Sections">
+    <ol>
+      <li><a href="#command" data-page="command"><span class="step">1</span><span class="name">Command</span><span class="hint">Priorities now</span></a></li>
+      <li><a href="#impact" data-page="impact"><span class="step">2</span><span class="name">Impact</span><span class="hint">What is likely to fail</span></a></li>
+      <li><a href="#cascade" data-page="cascade"><span class="step">3</span><span class="name">Cascade</span><span class="hint">What breaks next</span></a></li>
+      <li><a href="#action" data-page="action"><span class="step">4</span><span class="name">Action lab</span><span class="hint">What to do before landfall</span></a></li>
+      <li><a href="#reach" data-page="reach"><span class="step">5</span><span class="name">Reach</span><span class="hint">Who we may be missing</span></a></li>
+      <li><a href="#verify" data-page="verify"><span class="step">6</span><span class="name">Verify</span><span class="hint">Did we get it right</span></a></li>
+    </ol>
+    <div class="sep"></div>
+    <ol>
+      <li><a href="#evaluation" data-page="evaluation"><span class="step"></span><span class="name">Evaluation</span></a></li>
+      <li><a href="#safety" data-page="safety"><span class="step"></span><span class="name">AI and safety</span></a></li>
+    </ol>
+    <div class="sep"></div>
+    <div class="status" id="aiStatus">Checking Gemini…</div>
+    <div class="status" id="planStatus">No actions applied</div>
+    <div class="status"><button class="btn quiet bg-toggle" id="btnBg" aria-pressed="true">Pause background</button></div>
+  </nav>
+
+  <main>
+    <!-- 1 COMMAND -->
+    <section class="page" id="page-command">
+      <div class="page-head">
+        <div><h2 id="cmdHeadline">Cyclone replay</h2><p id="cmdSub">Consequences first. Every number below comes from the current simulation.</p></div>
+        <div class="btn-row"><button class="btn" id="btnBrief">Generate incident brief</button></div>
+      </div>
+      <div class="figures" id="cmdFigures"></div>
+      <div class="grid-2">
+        <div><div class="map" id="mapCommand"></div>
+          <div class="legend"><span><i style="background:#C1272D"></i>70%+ disruption</span><span><i style="background:#E0701B"></i>50–70%</span><span><i style="background:#E8B622"></i>30–50%</span><span><i style="background:#3F8A55"></i>below 30%</span><span><i style="background:#235E78;opacity:.35"></i>inundation exposure</span></div>
+        </div>
+        <div class="panel">
+          <h3>Next best actions</h3>
+          <p class="small muted" id="nbaNote">Computing a response plan with the default resources…</p>
+          <ol class="actions" id="nbaList"></ol>
+          <div class="btn-row" style="margin-top:10px"><button class="btn" id="btnApplyPlan" disabled>Apply this plan</button><button class="btn secondary" data-goto="action">Open action lab</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 IMPACT -->
+    <section class="page" id="page-impact">
+      <div class="page-head"><div><h2>What is likely to fail</h2><p>Hazard proxy plus asset fragility. Select any asset to see why.</p></div></div>
+      <div class="grid-2">
+        <div><div class="map tall" id="mapImpact"></div></div>
+        <div>
+          <div class="panel"><h3>Layers</h3><div class="layer-list" id="layerList"></div></div>
+          <div class="panel"><h3>Assets by disruption risk</h3>
+            <p class="small muted">Direct risk is the asset alone. Cascaded adds upstream dependencies.</p><div class="table-wrap" style="max-height:470px;overflow-y:auto"><table><thead><tr><th>Asset</th><th class="r">Direct</th><th class="r">Cascaded</th><th class="r">Served</th></tr></thead><tbody id="assetRows"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 CASCADE -->
+    <section class="page" id="page-cascade">
+      <div class="page-head">
+        <div><h2>What breaks because that asset fails</h2><p>Dependency graph. Risk flows left to right, from power to communities.</p></div>
+        <div class="btn-row">
+          <label class="small muted">Start from <select id="cascadeSeed"></select></label>
+          <button class="btn" id="btnCascade">Show cascade</button>
+          <button class="btn quiet" id="btnCascadeReset">Reset view</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div><div id="cy"></div><div class="cols-legend"><span>Grid</span><span>Substations</span><span>Telecom and water</span><span>Health, roads, shelters</span><span>Communities</span></div></div>
+        <div>
+          <div class="panel">
+            <div class="impact-block"><div class="v num" id="ciDirect">–</div><div class="muted">directly at risk (probability 50% or more)</div></div>
+            <div class="impact-block"><div class="v num" id="ciCascade">–</div><div class="muted">downstream services degraded by the cascade</div></div>
+            <div class="impact-block"><div class="v num" id="ciHuman">–</div><div class="muted">residents with degraded access in communities the cascade reaches (expected value)</div></div>
+          </div>
+          <div class="panel"><h3 id="chainTitle">Cascade path</h3><div class="chain" id="chainText">Press Show cascade.</div></div>
+          <div class="panel"><h3>Selected node</h3><div id="nodeDetail" class="small muted">Select a node in the graph.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 ACTION LAB -->
+    <section class="page" id="page-action">
+      <div class="page-head">
+        <div><h2>What if we act now?</h2><p>Apply interventions and the whole cascade is recomputed.</p></div>
+        <div class="btn-row">
+          <button class="btn" id="btnOptimize">Find best plan</button>
+          <button class="btn secondary" id="btnUndo">Undo</button>
+          <button class="btn secondary" id="btnReset">Reset</button>
+          <button class="btn quiet" id="btnStress">Run compound-failure stress test</button>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div>
+          <div class="panel"><h3>Available resources</h3><div id="resourceInputs"></div><p class="small muted">Used by Find best plan and by manual actions.</p></div>
+          <div class="panel"><h3>Applied actions</h3><ol class="applied" id="appliedList"></ol></div>
+        </div>
+        <div class="panel"><h3>Intervention candidates</h3><div id="candidateList" style="max-height:780px;overflow-y:auto;padding-right:6px"></div></div>
+        <div>
+          <div class="panel"><h3>Without plan vs with plan</h3><table class="compare"><tbody id="compareRows"></tbody></table>
+            <p class="small muted" style="margin-top:8px">Expected values from the simulation. Improvement is measured inside the model's assumptions.</p></div>
+          <div class="panel" id="planPanel" hidden><h3>Recommended response plan</h3><p class="small muted" id="planAlgo"></p><ol class="actions" id="planList"></ol></div>
+          <div class="panel" id="stressPanel" hidden><h3>Compound-failure stress test</h3><div id="stressBody"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 REACH -->
+    <section class="page" id="page-reach">
+      <div class="page-head">
+        <div><h2>Who may we be missing?</h2><p>Predicted-affected residents compared with what the response has actually observed.</p></div>
+        <span class="tag-synthetic" id="reachLabel">Synthetic field snapshot</span>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="map" id="mapReach" style="height:380px"></div>
+          <div class="panel" style="margin-top:16px"><h3>Community coverage</h3><p class="small muted" id="reachCaveat"></p>
+            <div class="table-wrap"><table><thead><tr><th>Community</th><th>Status</th><th class="r">Predicted affected</th><th class="r">Observed</th><th class="r">Reports</th><th>Why</th></tr></thead><tbody id="reachRows"></tbody></table></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <h3>Field report</h3>
+            <p class="small muted">Photo, voice transcript or text in English, Hindi or Odia. Gemini returns schema-checked JSON; every report is reviewed before it counts as verified.</p>
+            <div class="btn-row" style="margin:6px 0 10px">
+              <button class="btn quiet" data-sample="0">Sample: pole down near P04</button>
+              <button class="btn quiet" data-sample="1">Sample: Hindi flooding</button>
+              <button class="btn quiet" data-sample="2">Sample: Odia road blocked</button>
+            </div>
+            <form id="reportForm" class="form-grid">
+              <label class="full">What do you see?<textarea name="text" rows="3" id="rText"></textarea></label>
+              <label>Near<select id="rNear"></select></label>
+              <label>Language<select name="language" id="rLang"><option value="en">English</option><option value="hi">Hindi</option><option value="or">Odia</option></select></label>
+              <label>Latitude<input name="lat" id="rLat" inputmode="decimal"></label>
+              <label>Longitude<input name="lon" id="rLon" inputmode="decimal"></label>
+              <label class="full">Photo (optional)<input type="file" accept="image/*" capture="environment" id="rPhoto"></label>
+              <div class="full btn-row"><button class="btn" type="submit">Send report</button><button class="btn secondary" type="button" id="btnOffline">Switch to offline field mode</button></div>
+            </form>
+            <div id="queueBox" class="small" style="margin-top:10px"></div>
+          </div>
+          <div class="panel"><h3>Reports awaiting review</h3><div id="reportList" class="small muted">No reports yet.</div></div>
+          <div class="panel"><h3>Warning messages</h3>
+            <div class="btn-row"><select id="alertVillage"></select><button class="btn" id="btnAlerts">Draft warnings</button></div>
+            <div id="alertBox" class="small"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 VERIFY -->
+    <section class="page" id="page-verify">
+      <div class="page-head"><div><h2>Did the prediction match reality?</h2><p>Errors are shown, not hidden. Mismatches go to failure memory for human review.</p></div><span class="tag-synthetic" id="verifyLabel"></span></div>
+      <div class="triptych">
+        <figure><canvas id="cvBefore" width="520" height="400"></canvas><figcaption>Before</figcaption><div class="small muted">Normal water: river channels</div></figure>
+        <figure><canvas id="cvPred" width="520" height="400"></canvas><figcaption>Predicted</figcaption><div class="small muted">Inundation probability 50% or more</div></figure>
+        <figure><canvas id="cvObs" width="520" height="400"></canvas><figcaption>Observed</figcaption><div class="small muted">Stand-in for Sentinel-1 SAR change detection</div></figure>
+      </div>
+      <div class="figures" id="verifyFigures" style="margin-top:16px"></div>
+      <div class="grid-2">
+        <div class="panel"><h3>Asset outcomes</h3><div class="table-wrap"><table><thead><tr><th>Asset</th><th class="r">Predicted risk</th><th>Observed</th><th>Result</th></tr></thead><tbody id="verifyRows"></tbody></table></div></div>
+        <div>
+          <div class="panel"><h3>What we learned</h3><ul class="learned small" id="learnedList"></ul></div>
+          <div class="panel"><h3>Failure memory</h3><p class="small muted" id="memoryFlow"></p><div id="memoryList"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVALUATION -->
+    <section class="page" id="page-evaluation">
+      <div class="page-head"><div><h2>Evaluation</h2><p>Each block names its evidence type. They are never mixed.</p></div></div>
+      <div id="evalBody"></div>
+    </section>
+
+    <!-- SAFETY -->
+    <section class="page" id="page-safety">
+      <div class="page-head"><div><h2>AI and safety</h2><p>Each statement is tied to a control that exists in this build.</p></div></div>
+      <div class="panel"><div class="table-wrap"><table><thead><tr><th>Principle</th><th>Control in this build</th></tr></thead><tbody id="safetyRows"></tbody></table></div></div>
+      <div class="panel"><h3>Data provenance</h3><dl class="kv" id="provenance"></dl></div>
+    </section>
+  </main>
+</div>
+
+<aside class="drawer" id="drawer" aria-label="Evidence" aria-hidden="true">
+  <button class="btn quiet close" id="drawerClose">Close</button>
+  <div id="drawerBody"></div>
+</aside>
+
+<dialog id="briefDialog">
+  <div class="dialog-head"><h3>Incident brief</h3><div class="btn-row"><button class="btn quiet" id="btnCopyBrief">Copy</button><button class="btn quiet" id="btnPrintBrief">Print</button><button class="btn" id="btnCloseBrief">Close</button></div></div>
+  <div class="dialog-body"><p class="small muted" id="briefSource"></p><div class="md" id="briefBody"></div></div>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<script src="/static/cyclone-bg.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

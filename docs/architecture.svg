@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1120" font-family="Barlow, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#15222D"/></marker>
+    <style>
+      .box{fill:#F7F9F9;stroke:#15222D;stroke-width:1.6}
+      .core{fill:#fff;stroke:#15222D;stroke-width:2.4}
+      .ai{fill:#E7EEF7;stroke:#235E78;stroke-width:1.8}
+      .src{fill:#EDF1F2;stroke:#C7D1D6;stroke-width:1.4}
+      .t{font-size:17px;font-weight:700;fill:#15222D}
+      .s{font-size:13px;fill:#52626E}
+      .h{font-size:13px;font-weight:700;fill:#C1272D}
+      line,path.l{stroke:#15222D;stroke-width:1.6;fill:none;marker-end:url(#a)}
+    </style>
+  </defs>
+  <rect width="960" height="1120" fill="#EDF1F2"/>
+  <rect x="0" y="0" width="960" height="54" fill="#C1272D"/>
+  <text x="24" y="35" font-size="24" font-weight="700" fill="#fff">CYCLOPS architecture</text>
+  <text x="936" y="34" font-size="14" fill="#fff" text-anchor="end">deterministic models decide; Gemini extracts and rewrites</text>
+
+  <!-- sources -->
+  <rect class="src" x="60" y="78" width="840" height="74" rx="6"/>
+  <text class="t" x="80" y="104">Inputs (this build: cached demo bundle, IBTrACS adapter, Earth Engine SAR script)</text>
+  <text class="s" x="80" y="126">IBTrACS track · Open-Meteo weather · Sentinel-1 SAR (Earth Engine) · SRTM / Copernicus DEM</text>
+  <text class="s" x="80" y="144">OpenStreetMap infrastructure · WorldPop population · field reports (photo, voice transcript, text)</text>
+  <line x1="480" y1="152" x2="480" y2="180"/>
+
+  <rect class="core" x="300" y="182" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="208">Hazard engine</text>
+  <text class="s" x="320" y="228">wind vortex · rain proxy · surge + pluvial inundation proxy</text>
+  <line x1="480" y1="244" x2="480" y2="272"/>
+
+  <rect class="core" x="300" y="274" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="300">Infrastructure twin</text>
+  <text class="s" x="320" y="320">fragility curves per asset type · real contribution shares</text>
+  <line x1="480" y1="336" x2="480" y2="364"/>
+
+  <rect class="core" x="300" y="366" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="392">Dependency graph (NetworkX)</text>
+  <text class="s" x="320" y="412">power · water · comms · health · evacuation routes</text>
+  <line x1="480" y1="428" x2="480" y2="456"/>
+
+  <rect class="core" x="300" y="458" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="484">Cascade simulator</text>
+  <text class="s" x="320" y="504">fixed-point propagation (cycle-safe) · expected impact</text>
+  <line x1="480" y1="520" x2="480" y2="548"/>
+
+  <rect class="core" x="300" y="550" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="576">Action lab + optimizer</text>
+  <text class="s" x="320" y="596">counterfactuals · greedy plan under resource limits</text>
+
+  <path class="l" d="M480 612 L480 636 L170 636 L170 660"/>
+  <line x1="480" y1="612" x2="480" y2="660"/>
+  <path class="l" d="M480 636 L790 636 L790 660"/>
+  <rect class="box" x="80" y="662" width="180" height="52" rx="6"/><text class="t" x="98" y="694">Evacuation routes</text>
+  <rect class="box" x="390" y="662" width="180" height="52" rx="6"/><text class="t" x="408" y="694">Resource plan</text>
+  <rect class="ai" x="700" y="662" width="180" height="52" rx="6"/><text class="t" x="718" y="685">Alerts + brief</text><text class="s" x="718" y="704">Gemini, grounding check</text>
+  <path class="l" d="M170 714 L170 740 L480 740 L480 762"/>
+  <path class="l" d="M790 714 L790 740 L480 740"/>
+  <line x1="480" y1="714" x2="480" y2="762"/>
+
+  <rect class="ai" x="300" y="764" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="790">Field evidence → Gemini structure</text>
+  <text class="s" x="320" y="810">schema-checked JSON · review · dedup · offline sync</text>
+  <line x1="480" y1="826" x2="480" y2="854"/>
+
+  <rect class="core" x="300" y="856" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="882">Reach-gap detector</text>
+  <text class="s" x="320" y="902">predicted affected vs observed · possible blind spots</text>
+  <line x1="480" y1="918" x2="480" y2="946"/>
+
+  <rect class="core" x="300" y="948" width="360" height="62" rx="6"/>
+  <text class="t" x="320" y="974">Verify and learn</text>
+  <text class="s" x="320" y="994">SAR flood IoU · asset confusion · failure memory review</text>
+
+  <path class="l" d="M660 979 L920 979 L920 305 L664 305" stroke-dasharray="6 5"/>
+  <text class="h" x="680" y="1030">reviewed errors recalibrate the twin</text><text class="h" x="680" y="1048">(never automatic retraining)</text>
+  <path class="l" d="M300 795 L40 795 L40 397 L296 397" stroke-dasharray="6 5"/>
+  <text class="h" x="48" y="780">approved reports update graph state</text>
+
+  <text class="s" x="60" y="1060">Deploy: one container on Cloud Run (FastAPI + static PWA). Gemini via google-genai (API key or Vertex AI).</text>
+  <text class="s" x="60" y="1082">Blue boxes use Gemini. White boxes are deterministic code whose numbers the UI shows.</text>
+</svg>
